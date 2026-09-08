@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Notas por Cidade</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-light">
+<nav class="navbar navbar-dark bg-primary">
+  <div class="container">
+    <span class="navbar-brand fw-bold">📊 Notas por Cidade</span>
+    <a class="btn btn-light btn-sm" href="/admin/">Administração</a>
+  </div>
+</nav>
+
+<main class="container py-4">
+  <div class="row g-3 mb-4">
+    <div class="col-md-4"><div class="card shadow-sm"><div class="card-body">
+      <small class="text-muted">Média</small>
+      <h3>{{ stats.media|default:"0"|floatformat:2 }}</h3>
+    </div></div></div>
+    <div class="col-md-4"><div class="card shadow-sm"><div class="card-body">
+      <small class="text-muted">Maior nota</small>
+      <h3>{{ stats.maior|default:"0"|floatformat:2 }}</h3>
+    </div></div></div>
+    <div class="col-md-4"><div class="card shadow-sm"><div class="card-body">
+      <small class="text-muted">Menor nota</small>
+      <h3>{{ stats.menor|default:"0"|floatformat:2 }}</h3>
+    </div></div></div>
+  </div>
+
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <form method="get" class="row g-2">
+        <div class="col-md-4">
+          <input name="busca" value="{{ busca }}" class="form-control" placeholder="Nome, cidade ou curso">
+        </div>
+        <div class="col-md-3">
+          <select name="cidade" class="form-select">
+            <option value="">Todas as cidades</option>
+            {% for item in cidades %}
+              <option value="{{ item }}" {% if item == cidade_selecionada %}selected{% endif %}>{{ item }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <select name="curso" class="form-select">
+            <option value="">Todos os cursos</option>
+            {% for item in cursos %}
+              <option value="{{ item }}" {% if item == curso_selecionado %}selected{% endif %}>{{ item }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <select name="ordem" class="form-select">
+            <option value="nota_desc" {% if ordem == "nota_desc" %}selected{% endif %}>Maior nota</option>
+            <option value="nota_asc" {% if ordem == "nota_asc" %}selected{% endif %}>Menor nota</option>
+            <option value="nome" {% if ordem == "nome" %}selected{% endif %}>Nome</option>
+          </select>
+        </div>
+        <div class="col-12">
+          <button class="btn btn-primary">Pesquisar</button>
+          <a href="/" class="btn btn-outline-secondary">Limpar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <h5>Top 10 notas do resultado atual</h5>
+      <canvas id="grafico"></canvas>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h5 class="mb-3">Lista de notas</h5>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead><tr><th>#</th><th>Nome</th><th>Cidade</th><th>UF</th><th>Curso</th><th>Nota</th><th>Ano</th></tr></thead>
+          <tbody>
+          {% for item in page_obj %}
+            <tr>
+              <td>{{ forloop.counter0|add:page_obj.start_index }}</td>
+              <td>{{ item.nome }}</td>
+              <td>{{ item.cidade }}</td>
+              <td>{{ item.estado }}</td>
+              <td>{{ item.curso|default:"-" }}</td>
+              <td><strong>{{ item.nota|floatformat:2 }}</strong></td>
+              <td>{{ item.ano }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="7" class="text-center py-4">Nenhuma nota encontrada.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <nav>
+        <ul class="pagination">
+          {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&busca={{ busca }}&cidade={{ cidade_selecionada }}&curso={{ curso_selecionado }}&ordem={{ ordem }}">Anterior</a></li>
+          {% endif %}
+          <li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+          {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&busca={{ busca }}&cidade={{ cidade_selecionada }}&curso={{ curso_selecionado }}&ordem={{ ordem }}">Próxima</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+  </div>
+</main>
+
+<script>
+const dados = {{ top|safe }};
+new Chart(document.getElementById("grafico"), {
+  type: "bar",
+  data: {
+    labels: dados.map(x => x.nome + " (" + x.cidade + ")"),
+    datasets: [{ label: "Nota", data: dados.map(x => Number(x.nota)) }]
+  },
+  options: { responsive: true, scales: { y: { beginAtZero: false } } }
+});
+</script>
+</body>
+</html>
